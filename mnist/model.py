@@ -51,7 +51,7 @@ class Conv_block(nn.Module):
 
 kernel_=3
 padding_=1
-thresh=1e-7
+thresh=1e-5
 
 d = torch.linspace(-1, 1, 256)
 meshx, meshy = torch.meshgrid((d, d))
