@@ -9,6 +9,8 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 from model import encode_mnist
+from model import classifier
+
 class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
@@ -16,40 +18,9 @@ class Net(nn.Module):
         self.classifier=classifier()
         self.encoder=encode_mnist()
     def forward(self,x):
-        #print(x.shape)
         out,loss_bar,dec2=self.encoder(x)
-        #print("BG",dec2['background'][0])
-        #print("FG",dec2['foreground'][0])
-        #out_preds=self.classifier(out)
-        #loss_bar=0
         return out,loss_bar
 
-class classifier(nn.Module):
-    def __init__(self):
-        super(classifier, self).__init__()
-
-        self.conv1 = nn.Conv2d(3, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(12544, 128)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        #print(x.shape)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
 
 
 

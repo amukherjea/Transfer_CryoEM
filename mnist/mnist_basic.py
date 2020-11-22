@@ -6,34 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
-
-
-class classifier(nn.Module):
-    def __init__(self):
-        super(classifier, self).__init__()
-
-        self.conv1 = nn.Conv2d(3, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(12544, 128)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        #print(x.shape)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+from model import classifier
 
 
 def train(model, device, train_loader, optimizer, epoch):
@@ -49,7 +22,6 @@ def train(model, device, train_loader, optimizer, epoch):
         data=data.repeat(1,3,1,1)
 
 
-        #print(k)
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
