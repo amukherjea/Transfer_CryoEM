@@ -110,15 +110,12 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = classifier().cuda()#.to(device)
-    optimizer = optim.Adadelta(model.parameters(), lr=lr)
-
-    scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
+    
     model2=Net().cuda()
     model.load_state_dict(torch.load('classifier_basic.pt'))
-    # for param in model.parameters():
-    #     param.requires_grad = False
     optimizer = optim.Adam(model2.parameters(), lr=0.01,betas=(0.9,0.999)
-
+    scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
+    
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
         train(model, model2,device, train_loader, optimizer, epoch)
