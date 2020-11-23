@@ -127,6 +127,7 @@ def main():
     model = classifier().cuda()#.to(device)
     wandb.watch(model)
     optimizer = optim.Adadelta(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=0.01,betas=(0.9,0.999))
 
     scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
     for epoch in range(1, epochs + 1):

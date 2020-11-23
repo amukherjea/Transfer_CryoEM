@@ -125,7 +125,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = classifier().cuda()#.to(device)
-    optimizer = optim.Adadelta(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=lr,betas=(0.9,0.999)
 
     scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
     model2=Net().cuda().eval()
