@@ -10,6 +10,9 @@ from torch.optim.lr_scheduler import StepLR
 import numpy as np
 from model import encode_mnist
 from model import classifier
+import wandb #remove before push 
+wandb.init(project="deceptionnet") #remove before push
+
 class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
@@ -58,7 +61,7 @@ def train(model,model2, device, train_loader, optimizer, epoch):
         loss_sum+=np.abs(float(loss)/(len(train_loader.dataset)//data.shape[0]))
         #print("Loss_Classification {}".format(np.abs(float(loss_class))))
         optimizer.step()
-        
+    wandb.log({"Train Loss: Final": loss_sum}) #remove before push 
     print('Epoch {} Train loss {}'.format(epoch, loss_sum))
 
 
@@ -83,6 +86,7 @@ def test(model,model2, device, test_loader):
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, (2*len(test_loader.dataset)),
         100. * correct / (2*len(test_loader.dataset))))
+    wandb.log({"Test Accuracy:Final": 100. * correct / len(test_loader.dataset), "Test Loss:Final": test_loss}) #remove before push
     torch.save(model.state_dict(), 'classifier_complete.pt')
 
 
@@ -126,6 +130,7 @@ def main():
     scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
     model2=Net().cuda().eval()
     model2.load_state_dict(torch.load('classifier_advanced.pt'))
+    wandb.watch(model2)
     # for param in model2.parameters():
     #     param.requires_grad = False
     #optimizer = optim.Adadelta(model2.parameters(), lr=0.01)

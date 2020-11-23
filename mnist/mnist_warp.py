@@ -9,13 +9,10 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 from model import encode_mnist
-<<<<<<< HEAD
 import wandb #remove before push 
 wandb.init(project="deceptionnet") #remove before push
-=======
 from model import classifier
 
->>>>>>> origin
 class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
@@ -88,11 +85,11 @@ def main():
     use_cuda = True
     gamma=0.7
     save_model=True
-    batch_size=45 #128
+    batch_size=128 #128
     lr=0.1
     test_batch_size=128
 
-    epochs=20
+    epochs=50
     device = torch.device("cuda" if use_cuda else "cpu")
 
     train_kwargs = {'batch_size': batch_size}
@@ -120,7 +117,8 @@ def main():
     wandb.watch(model)
     optimizer = optim.Adadelta(model.parameters(), lr=lr)
 
-    scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
+    #scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
+    
     model2=Net().cuda()
     model.load_state_dict(torch.load('classifier_basic.pt'))
     # for param in model.parameters():

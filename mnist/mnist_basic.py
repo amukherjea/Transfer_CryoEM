@@ -6,7 +6,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
-<<<<<<< HEAD
 import wandb #remove before push
 wandb.init(project="deceptionnet") #remove before push
 
@@ -36,9 +35,7 @@ class classifier(nn.Module):
         x = self.fc2(x)
         output = F.log_softmax(x, dim=1)
         return output
-=======
 from model import classifier
->>>>>>> origin
 
 
 def train(model, device, train_loader, optimizer, epoch):
