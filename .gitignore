@@ -1,6 +1,9 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+*.pt
+*.gz
+
 *$py.class
 
 # C extensions
@@ -8,6 +11,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+mnist/mnist_m/
 build/
 develop-eggs/
 dist/
