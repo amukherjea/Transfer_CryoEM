@@ -117,7 +117,7 @@ def main():
     model.load_state_dict(torch.load('classifier_basic.pt'))
     # for param in model.parameters():
     #     param.requires_grad = False
-    optimizer = optim.Adadelta(model2.parameters(), lr=0.01)
+    optimizer = optim.Adam(model2.parameters(), lr=0.01,betas=(0.9,0.999)
 
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
