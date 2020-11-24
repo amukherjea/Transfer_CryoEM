@@ -132,6 +132,7 @@ def main():
         train(model, model2,device, train_loader, optimizer, epoch)
         test_loss = test(model, model2,device, test_loader)
         scheduler.step(test_loss)
+        print('LR:{}'.format(optimizer.param_groups[0]['lr']))
 
     if save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")
