@@ -78,6 +78,8 @@ def test(model,model2, device, test_loader):
     wandb.log({"Test Accuracy:Warp": 100. * correct / len(test_loader.dataset), "Test Loss:Warp": test_loss}) #remove before push
     torch.save(model2.state_dict(), 'classifier_advanced.pt')
 
+    return test_loss
+
 
 def main():
     # Training settings
@@ -128,8 +130,8 @@ def main():
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
         train(model, model2,device, train_loader, optimizer, epoch)
-        test(model, model2,device, test_loader)
-        scheduler.step()
+        test_loss = test(model, model2,device, test_loader)
+        scheduler.step(test_loss)
 
     if save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")
