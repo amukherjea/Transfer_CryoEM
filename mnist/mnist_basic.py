@@ -94,7 +94,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = classifier().cuda()#.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.01,betas=(0.9,0.999)
+    optimizer = optim.Adam(model.parameters(), lr=0.01,betas=(0.9,0.999))
 
     scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
     for epoch in range(1, epochs + 1):

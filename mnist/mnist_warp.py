@@ -46,7 +46,7 @@ def train(model,model2, device, train_loader, optimizer, epoch):
         loss.backward()
 
         loss_sum+=np.abs(float(loss)/(len(train_loader.dataset)//data.shape[0]))
-        #print("Loss_Sep {} Loss_Classification {}".format((float(loss_sep)),np.abs(float(loss_class))))
+        print("Loss_Sep {} Loss_Classification {}".format((float(loss_sep)),np.abs(float(loss_class))))
         optimizer.step()
         #break
         #if batch_idx % log_interval == 0:
@@ -74,6 +74,8 @@ def test(model,model2, device, test_loader):
         100. * correct / len(test_loader.dataset)))
     torch.save(model2.state_dict(), 'classifier_advanced.pt')
 
+    return (test_loss)
+
 
 def main():
     # Training settings
@@ -81,17 +83,17 @@ def main():
     use_cuda = True
     gamma=0.7
     save_model=True
-    batch_size=128
+    batch_size=128 #128
     lr=0.1
     test_batch_size=128
 
-    epochs=20
+    epochs=50
     device = torch.device("cuda" if use_cuda else "cpu")
 
     train_kwargs = {'batch_size': batch_size}
     test_kwargs = {'batch_size': test_batch_size}
     if use_cuda:
-        cuda_kwargs = {'num_workers': 1,
+        cuda_kwargs = {'num_workers': 6,
                        'pin_memory': True,
                        'shuffle': True}
         train_kwargs.update(cuda_kwargs)
@@ -110,17 +112,21 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = classifier().cuda()#.to(device)
+    optimizer = optim.Adadelta(model.parameters(), lr=lr)
+
+    scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
     
     model2=Net().cuda()
     model.load_state_dict(torch.load('classifier_basic.pt'))
-    optimizer = optim.Adam(model2.parameters(), lr=0.01,betas=(0.9,0.999)
-    scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
+    optimizer = optim.Adam(model2.parameters(), lr=0.01,betas=(0.9,0.999))
+    #scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.9, patience=3)
     
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
         train(model, model2,device, train_loader, optimizer, epoch)
-        test(model, model2,device, test_loader)
-        scheduler.step()
+        test_loss = test(model, model2,device, test_loader)
+        scheduler.step(test_loss)
 
     if save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")
