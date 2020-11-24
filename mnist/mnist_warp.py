@@ -125,7 +125,7 @@ def main():
     model.load_state_dict(torch.load('classifier_basic.pt'))
     optimizer = optim.Adam(model2.parameters(), lr=0.01,betas=(0.9,0.999))
     #scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.9, patience=3)
     
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
