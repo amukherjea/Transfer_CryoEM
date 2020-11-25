@@ -31,24 +31,23 @@ def create_dataset(device,data,target,model2):
 
             #print(output[0][0])
             #print(torch.unique(output[0].detach()))
-            cv2.imwrite('demo.png',cv2.pyrUp(cv2.pyrUp(output.detach().cpu().numpy()[0].transpose(1,2,0)*255)))
+            # cv2.imwrite('demo.png',cv2.pyrUp(cv2.pyrUp(output.detach().cpu().numpy()[0].transpose(1,2,0)*255)))
             cv2.imwrite('demo_orig.png',cv2.pyrUp(cv2.pyrUp(data.detach().cpu().numpy()[0].transpose(1,2,0)*255)))
             
             output__=torch.cat([data,output],dim=0)
             target_=torch.cat([target,target],dim=0)
             #print(target.shape,target_.shape)
-    return output__,target_#data.to(device),target.to(device)#
+            return output__,target_#data.to(device),target.to(device)#
     
 
-def train(model,model2, device, train_loader, optimizer, epoch):
+def train(model, model2,device, train_loader, optimizer, epoch):
     model.train()
-    model2.eval()
     log_interval=10
     loss_sum=0.0
     from tqdm.auto import tqdm
     for (data, target) in tqdm(train_loader):
         out,tar=create_dataset(device,data,target,model2)
-
+        
         optimizer.zero_grad()
         output=model(out)
         loss_class = (F.nll_loss(output, tar))*1e+2
@@ -56,20 +55,21 @@ def train(model,model2, device, train_loader, optimizer, epoch):
         loss.backward()
 
         loss_sum+=np.abs(float(loss)/(len(train_loader.dataset)//data.shape[0]))
-        #print("Loss_Classification {}".format(np.abs(float(loss_class))))
         optimizer.step()
         
     print('Epoch {} Train loss {}'.format(epoch, loss_sum))
 
 
-def test(model,model2, device, test_loader):
-    model2.eval()
+def test(model,model2,device, test_loader):
+    
     model.eval()
     test_loss = 0
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
+            
             out,tar=create_dataset(device,data,target,model2)
+
 
             
             output=model(out)
@@ -84,7 +84,7 @@ def test(model,model2, device, test_loader):
         test_loss, correct, (2*len(test_loader.dataset)),
         100. * correct / (2*len(test_loader.dataset))))
     torch.save(model.state_dict(), 'classifier_complete.pt')
-
+    return test_loss
 
 def main():
     # Training settings
@@ -92,7 +92,7 @@ def main():
     use_cuda = True
     gamma=0.7
     save_model=True
-    batch_size=128
+    batch_size=64
     lr=0.1
     test_batch_size=128
 
@@ -121,19 +121,16 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = classifier().cuda()#.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr,betas=(0.9,0.999)
 
-    scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
+    optimizer = optim.Adam(model.parameters(), lr=0.01,betas=(0.9,0.999))
     model2=Net().cuda().eval()
     model2.load_state_dict(torch.load('classifier_advanced.pt'))
-    # for param in model2.parameters():
-    #     param.requires_grad = False
-    #optimizer = optim.Adadelta(model2.parameters(), lr=0.01)
-
+    
+    scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
-        train(model, model2,device, train_loader, optimizer, epoch)
-        test(model, model2,device, test_loader)
+        train(model,model2, device, train_loader, optimizer, epoch)
+        test(model,model2, device, test_loader)
         scheduler.step()
 
 

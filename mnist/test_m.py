@@ -73,7 +73,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset_test, **test_kwargs)
 
     model = classifier().cuda()#.to(device)
-    model.load_state_dict(torch.load('classifier_basic.pt'))
+    model.load_state_dict(torch.load('classifier_complete.pt'))
 
     test(model, device, test_loader)
     
