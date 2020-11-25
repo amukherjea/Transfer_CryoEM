@@ -91,13 +91,13 @@ def main():
     lr=0.1
     test_batch_size=128
 
-    epochs=50
+    epochs=100
     device = torch.device("cuda" if use_cuda else "cpu")
 
     train_kwargs = {'batch_size': batch_size}
     test_kwargs = {'batch_size': test_batch_size}
     if use_cuda:
-        cuda_kwargs = {'num_workers': 6,
+        cuda_kwargs = {'num_workers': 0,
                        'pin_memory': True,
                        'shuffle': True}
         train_kwargs.update(cuda_kwargs)
@@ -125,14 +125,14 @@ def main():
     model.load_state_dict(torch.load('classifier_basic.pt'))
     optimizer = optim.Adam(model2.parameters(), lr=0.01,betas=(0.9,0.999))
     #scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.9, patience=3)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.9, patience=3)
     
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
         train(model, model2,device, train_loader, optimizer, epoch)
         test_loss = test(model, model2,device, test_loader)
-        scheduler.step(test_loss)
-        print('LR:{}'.format(optimizer.param_groups[0]['lr']))
+        scheduler.step(-test_loss)
+        print(optimizer.param_groups[0]['lr'])
 
     if save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")
