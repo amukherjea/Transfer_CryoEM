@@ -46,7 +46,7 @@ def train(model,model2, device, train_loader, optimizer, epoch):
         loss.backward()
 
         loss_sum+=np.abs(float(loss)/(len(train_loader.dataset)//data.shape[0]))
-        print("Loss_Sep {} Loss_Classification {}".format((float(loss_sep)),np.abs(float(loss_class))))
+        #print("Loss_Sep {} Loss_Classification {}".format((float(loss_sep)),np.abs(float(loss_class))))
         optimizer.step()
         #break
         #if batch_idx % log_interval == 0:
