@@ -43,7 +43,7 @@ class Conv_block(nn.Module):
         self.net = nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
         )
 
     def forward(self, x):
@@ -63,12 +63,12 @@ class decoder_ds(nn.Module):
         super(decoder_ds,self).__init__()
         global bottle
         self.c1=nn.Conv2d(in_channels=in_channels,out_channels=1,kernel_size=1,stride=1)
-        self.f1=nn.Sequential(nn.Linear(bottle,1),nn.Hardtanh(0.1,5))
+        self.f1=nn.Sequential(nn.Linear(bottle,1),nn.Sigmoid())
 
     def forward(self,x,orig):
 
         alpha=torch.flatten(self.c1(x['encode_ds']),start_dim=1)
-        alpha=self.f1(alpha)
+        alpha=self.f1(alpha)*5.0
         def_=deform(orig.shape).cuda()(x,orig,alpha)
         def_=def_.repeat(1,3,1,1)
         return def_
@@ -156,11 +156,15 @@ class decoder_bg(nn.Module):
         in_channels=16
         out_channels=1
 
-        self.conv1=nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=1,stride=1)
-        self.l1=nn.Sequential(nn.Linear(bottle,3),nn.Hardtanh(0,1))
+        self.conv1=nn.Sequential(nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=3,stride=1,padding=1),
+                                nn.BatchNorm2d(out_channels),
+                                nn.LeakyReLU(0.2))
+        self.l1=nn.Sequential(nn.Linear(bottle,3),nn.Sigmoid())
 
-        self.conv2=nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=1,stride=1)
-        self.l2=nn.Sequential(nn.Linear(bottle,3),nn.Hardtanh(0.1,0.9))
+        self.conv2=nn.Sequential(nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=3,stride=1,padding=1),
+                                nn.BatchNorm2d(out_channels),
+                                nn.LeakyReLU(0.2))
+        self.l2=nn.Sequential(nn.Linear(bottle,3),nn.Sigmoid())
 
 
     def forward(self,x,orig):
@@ -170,7 +174,7 @@ class decoder_bg(nn.Module):
         x=x[:,ll:,:,:]
         s=(torch.flatten(self.conv1(x),start_dim=1))
         s=self.l1(s)
-        s_for=self.l2(torch.flatten(self.conv2(x1),start_dim=1))
+        s_for=(self.l2(torch.flatten(self.conv2(x1),start_dim=1))+0.125)*0.8
         mask=torch.abs(s-s_for)
         mask1=mask.clone()
         mask[mask1>thresh]=0
@@ -181,6 +185,8 @@ class decoder_bg(nn.Module):
         diff_for_loss=(1/torch.abs(s-s_for))*mask
 
         col=orig
+        print("Foreground",s_for[0])
+        print("Background",s[0])
         #col=orig.clone()
         #col=col.repeat(1,3,1,1)
         for i in range(orig.shape[0]):
