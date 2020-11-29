@@ -185,8 +185,8 @@ class decoder_bg(nn.Module):
         diff_for_loss=(1/torch.abs(s-s_for))*mask
 
         col=orig
-        print("Foreground",s_for[0])
-        print("Background",s[0])
+        #print("Foreground",s_for[0])
+        #print("Background",s[0])
         #col=orig.clone()
         #col=col.repeat(1,3,1,1)
         for i in range(orig.shape[0]):
