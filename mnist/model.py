@@ -59,7 +59,7 @@ grid = torch.stack((meshy, meshx), 2)
 
 
 class decoder_ds(nn.Module):
-    def __init__(self,in_channels=256):
+    def __init__(self,in_channels=128):
         super(decoder_ds,self).__init__()
         global bottle
         self.c1=nn.Conv2d(in_channels=in_channels,out_channels=1,kernel_size=1,stride=1)
@@ -67,7 +67,7 @@ class decoder_ds(nn.Module):
 
     def forward(self,x,orig):
 
-        alpha=torch.flatten(self.c1(x['encode']),start_dim=1)
+        alpha=torch.flatten(self.c1(x['encode_ds']),start_dim=1)
         alpha=self.f1(alpha)
         def_=deform(orig.shape).cuda()(x,orig,alpha)
         def_=def_.repeat(1,3,1,1)
@@ -120,8 +120,8 @@ class deform(nn.Module):
         self.y=self.y.cuda()
         self.y.requires_grad=False
 
-        channel_list_ns=[256,128,128,128,128,128,128,64,64,64,32,3]
-        self.dec=nn.Sequential(decoder_general(channel_list_ns),nn.Hardtanh(-1,1))
+        channel_list_ns=[128,128,128,128,128,128,128,64,64,64,32,3]
+        self.dec=nn.Sequential(decoder_general(channel_list_ns,name='ds'),nn.Hardtanh(-1,1))
 
 
     def forward(self, bottleneck, inputs,alphas):
@@ -153,7 +153,7 @@ class decoder_bg(nn.Module):
     def __init__(self):
         global bottle
         super(decoder_bg,self).__init__()
-        in_channels=128
+        in_channels=16
         out_channels=1
 
         self.conv1=nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=1,stride=1)
@@ -195,9 +195,9 @@ class decoder_bg(nn.Module):
 class decoder_ns(nn.Module):
     def __init__(self):
         super(decoder_ns,self).__init__()
-        channel_list_ns=[256,128,128,128,128,128,128,64,64,64,32,3]
+        channel_list_ns=[128,128,128,128,128,128,128,64,64,64,32,3]
         self.dec=nn.Sequential(
-            decoder_general(channel_list_ns),
+            decoder_general(channel_list_ns,name='ns'),
             nn.Hardtanh(-0.01,0.01),
             )
 
@@ -211,7 +211,7 @@ class Conv_block_T(nn.Module):
         self.net = nn.Sequential(
             nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels, kernel_size=2, stride=2),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
         )
 
     def forward(self, x):
@@ -219,7 +219,7 @@ class Conv_block_T(nn.Module):
 
 
 class decoder_general(nn.Module):
-    def __init__(self,channel_list):
+    def __init__(self,channel_list,name):
         
         super(decoder_general,self).__init__()
         self.u0=nn.Sequential(
@@ -241,10 +241,10 @@ class decoder_general(nn.Module):
             Conv_block(channel_list[8]*2,channel_list[9]),
             #Conv_block(channel_list[9],channel_list[10]),
             Conv_block(channel_list[9],channel_list[11]))
-        
+        self.name=name
     def forward(self,store):
         #store['0'],store['1'],store['2']
-        x=self.u0(store['encode'])
+        x=self.u0(store['encode_'+self.name])
         x=torch.cat([x,store['2']],dim=1)
         x=self.u1(x)
         x=torch.cat([x,store['1']],dim=1)
@@ -283,8 +283,10 @@ class encoder(nn.Module):
         x_2 = self.d2(x_1)
         x_3 = self.d3(x_2)
         
-        store={'encode':x_3,'0':x_0,'1':x_1,'2':x_2}
-
+        l1=x_3.shape[1]
+        
+        store={'encode_bg':x_3[:,:l1//8,:,:],'encode_ds':x_3[:,:(l1)//2,:,:],'encode_ns':x_3[:,((l1)//2):,:,:],'0':x_0,'1':x_1,'2':x_2}
+        
         return store
 
 class encode_mnist(nn.Module):
@@ -305,7 +307,7 @@ class encode_mnist(nn.Module):
         dec1[dec1>thresh],dec1[dec1<=thresh]=1,0
         #print(torch.unique(dec1[0][0].detach()))
 
-        dec2=self.decoder_2(x_en['encode'],dec1)
+        dec2=self.decoder_2(x_en['encode_bg'],dec1)
         dec3=self.decoder_3(x_en)
         out_avg=(dec2['dec']+dec3)
         return out_avg, dec2['loss'],dec2
