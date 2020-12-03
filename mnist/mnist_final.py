@@ -40,52 +40,11 @@ def create_dataset(device,data,target,model2):
             return output__,target_#data.to(device),target.to(device)#
     
 
-def train(model, model2,device, train_loader, optimizer, epoch):
-    model.train()
-    log_interval=10
-    loss_sum=0.0
-    from tqdm.auto import tqdm
-    for (data, target) in tqdm(train_loader):
-        out,tar=create_dataset(device,data,target,model2)
-        
-        optimizer.zero_grad()
-        output=model(out)
-        loss_class = (F.nll_loss(output, tar))*1e+2
-        loss=loss_class
-        loss.backward()
-
-        loss_sum+=np.abs(float(loss)/(len(train_loader.dataset)//data.shape[0]))
-        optimizer.step()
-        
-    print('Epoch {} Train loss {}'.format(epoch, loss_sum))
-
-
-def test(model,model2,device, test_loader):
     
-    model.eval()
-    test_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            
-            out,tar=create_dataset(device,data,target,model2)
 
 
-            
-            output=model(out)
-      
-            test_loss += np.abs((F.nll_loss(output, tar, reduction='sum').cpu().item()))  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            correct += pred.eq(tar.view_as(pred)).sum().item()
-
-    test_loss /= len(test_loader.dataset)
-
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, (2*len(test_loader.dataset)),
-        100. * correct / (2*len(test_loader.dataset))))
-    torch.save(model.state_dict(), 'classifier_complete.pt')
-    return test_loss
-
+    
+    
 def main():
     # Training settings
 
@@ -126,12 +85,48 @@ def main():
     model2=Net().cuda().eval()
     model2.load_state_dict(torch.load('classifier_advanced.pt'))
     
-    scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min',factor=0.9,patience=3)
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
-        train(model,model2, device, train_loader, optimizer, epoch)
-        test(model,model2, device, test_loader)
-        scheduler.step()
+        model.train()
+        log_interval=10
+        loss_sum=0.0
+        from tqdm.auto import tqdm
+        for (data, target) in tqdm(train_loader):
+            out,tar=create_dataset(device,data,target,model2)
+            
+            optimizer.zero_grad()
+            output=model(out)
+            loss_class = (F.nll_loss(output, tar))*1e+2
+            loss=loss_class
+            loss.backward()
+
+            loss_sum+=np.abs(float(loss)/(len(train_loader.dataset)//data.shape[0]))
+            optimizer.step()
+            
+        print('Epoch {} Train loss {}'.format(epoch, loss_sum))
+
+        model.eval()
+        test_loss = 0
+        correct = 0
+        with torch.no_grad():
+            for data, target in test_loader:
+                
+                out,tar=create_dataset(device,data,target,model2)
+                output=model(out)
+        
+                test_loss += np.abs((F.nll_loss(output, tar, reduction='sum').cpu().item()))  # sum up batch loss
+                pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+                correct += pred.eq(tar.view_as(pred)).sum().item()
+
+        test_loss /= len(test_loader.dataset)
+
+        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+            test_loss, correct, (2*len(test_loader.dataset)),
+            100. * correct / (2*len(test_loader.dataset))))
+        torch.save(model.state_dict(), 'classifier_complete.pt')
+       
+        scheduler.step(test_loss)
 
 
 if __name__ == '__main__':

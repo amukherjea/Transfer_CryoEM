@@ -84,8 +84,8 @@ def main():
     gamma=0.7
     save_model=True
     batch_size=128 #128
-    lr=0.1
-    test_batch_size=128
+    lr=0.01
+    test_batch_size=256
 
     epochs=50
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -93,7 +93,7 @@ def main():
     train_kwargs = {'batch_size': batch_size}
     test_kwargs = {'batch_size': test_batch_size}
     if use_cuda:
-        cuda_kwargs = {'num_workers': 6,
+        cuda_kwargs = {'num_workers': 0,
                        'pin_memory': True,
                        'shuffle': True}
         train_kwargs.update(cuda_kwargs)

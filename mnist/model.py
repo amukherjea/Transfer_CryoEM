@@ -13,16 +13,16 @@ class classifier(nn.Module):
         self.layers = nn.Sequential(
             nn.Conv2d(3, 32, 5, 1,1),
             nn.MaxPool2d(2,2),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.MaxPool2d(2,2),
             nn.Conv2d(32, 48, 5, 1,1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.MaxPool2d(2,2))
         self.fc=nn.Sequential(
             nn.Linear(192,100),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.Linear(100,100),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             nn.Linear(100,10))
         
 
@@ -43,7 +43,7 @@ class Conv_block(nn.Module):
         self.net = nn.Sequential(
             nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.LeakyReLU(0.2),
+            nn.Tanh(),
         )
 
     def forward(self, x):
@@ -78,7 +78,7 @@ class decoder_ds(nn.Module):
 
 class deform(nn.Module):
 
-    def __init__(self, shape,channels=1, kernel_size=5, sigma=4, stride=1, padding=2,dim=2):
+    def __init__(self, shape,channels=1, kernel_size=3, sigma=4, stride=1, padding=1,dim=2):
         super(deform, self).__init__()
         if isinstance(kernel_size, numbers.Number):
             kernel_size = [kernel_size] * dim
@@ -158,13 +158,13 @@ class decoder_bg(nn.Module):
 
         self.conv1=nn.Sequential(nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=3,stride=1,padding=1),
                                 nn.BatchNorm2d(out_channels),
-                                nn.LeakyReLU(0.2))
-        self.l1=nn.Sequential(nn.Linear(bottle,3),nn.Sigmoid())
-
+                                nn.Tanh())
+        self.l1=nn.Sequential(nn.Linear(bottle,3))
+        self.act=nn.Sigmoid()
         self.conv2=nn.Sequential(nn.Conv2d(in_channels=in_channels,out_channels=out_channels,kernel_size=3,stride=1,padding=1),
                                 nn.BatchNorm2d(out_channels),
-                                nn.LeakyReLU(0.2))
-        self.l2=nn.Sequential(nn.Linear(bottle,3),nn.Sigmoid())
+                                nn.Tanh())
+        self.l2=nn.Sequential(nn.Linear(bottle,3))
 
 
     def forward(self,x,orig):
@@ -173,8 +173,14 @@ class decoder_bg(nn.Module):
         x1=x[:,:ll,:,:]
         x=x[:,ll:,:,:]
         s=(torch.flatten(self.conv1(x),start_dim=1))
+        
         s=self.l1(s)
-        s_for=(self.l2(torch.flatten(self.conv2(x1),start_dim=1))+0.125)*0.8
+        #print("Original ",s[0].data)
+        s=self.act(s)
+        s_for=self.l2(torch.flatten(self.conv2(x1),start_dim=1))
+        
+        s_for=(self.act(s_for)+0.125)*0.8
+        
         mask=torch.abs(s-s_for)
         mask1=mask.clone()
         mask[mask1>thresh]=0
@@ -182,11 +188,12 @@ class decoder_bg(nn.Module):
         #mask[mask>thresh],mask[mask<=thresh]=0,1
         #print(mask[0],s[0],s_for[0])
 
-        diff_for_loss=(1/torch.abs(s-s_for))*mask
+        diff_for_loss=(1/torch.abs(s-s_for))*mask#+(torch.sum(s+s_for)*1e-5)
 
         col=orig
-        #print("Foreground",s_for[0])
-        #print("Background",s[0])
+        #print("Foreground",s_for[0].data)
+        #print("Background",s[0].data)
+        #print("Mask ",mask[mask==1])
         #col=orig.clone()
         #col=col.repeat(1,3,1,1)
         for i in range(orig.shape[0]):
@@ -217,7 +224,7 @@ class Conv_block_T(nn.Module):
         self.net = nn.Sequential(
             nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels, kernel_size=2, stride=2),
             nn.BatchNorm2d(out_channels),
-            nn.LeakyReLU(0.2),
+            nn.Tanh(),
         )
 
     def forward(self, x):
@@ -319,15 +326,15 @@ class encode_mnist(nn.Module):
         return out_avg, dec2['loss'],dec2
         # return out_avg,dec2['loss'],dec2
 
+if __name__=='__main__':
 
+    in_=torch.rand(64,1,32,32).cuda()
+    in_[in_>0.5]=1
+    in_[in_<=0.5]=0
+    encoded=encode_mnist().cuda()(in_)[0]
+    # print(encoded['encode'].shape)  #   [64,256,4,4]
+    # print(encoded['0'].shape)   #   [64,64,32,32]
+    # print(encoded['1'].shape)   #   [64,128,16,16]
+    # print(encoded['2'].shape)   #   [64,128,8,8]
 
-in_=torch.rand(64,1,32,32).cuda()
-in_[in_>0.5]=1
-in_[in_<=0.5]=0
-encoded=encode_mnist().cuda()(in_)[0]
-# print(encoded['encode'].shape)  #   [64,256,4,4]
-# print(encoded['0'].shape)   #   [64,64,32,32]
-# print(encoded['1'].shape)   #   [64,128,16,16]
-# print(encoded['2'].shape)   #   [64,128,8,8]
-
-print(encoded.shape)
+    print(encoded.shape)
