@@ -48,8 +48,9 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = classifier().cuda()#.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.01,betas=(0.9,0.999))
+    optimizer = optim.SGD(model.parameters(), lr=0.01,nesterov=True, momentum=0.9)
 
+    
     #scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
@@ -73,7 +74,7 @@ def main():
          
             optimizer.zero_grad()
             output = model(data)
-            loss = F.nll_loss(output, target)
+            loss = nn.CrossEntropyLoss()(output, target)
             loss.backward()
 
             loss_sum+=float(loss)/(len(train_loader.dataset)//data.shape[0])
@@ -100,7 +101,7 @@ def main():
 
 
                 output = model(data)
-                test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+                test_loss += nn.CrossEntropyLoss()(output, target).item()  # sum up batch loss
                 pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
                 correct += pred.eq(target.view_as(pred)).sum().item()
 

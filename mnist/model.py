@@ -31,8 +31,7 @@ class classifier(nn.Module):
         x = self.layers(x)
         x = torch.flatten(x, 1)
         
-        x=self.fc(x)
-        output = F.log_softmax(x, dim=1)
+        output=self.fc(x)
         return output
 
 
