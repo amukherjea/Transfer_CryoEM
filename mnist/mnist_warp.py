@@ -24,6 +24,17 @@ class Net(nn.Module):
 
 
 
+from torch.autograd import Function
+class GradReverse(Function):
+    @staticmethod
+    def forward(self, x):
+        return x.view_as(x)
+    @staticmethod
+    def backward(self, grad_output):
+        return grad_output.neg()
+
+def reverse_grad(x):
+    return GradReverse.apply(x)
 
     
 
@@ -87,10 +98,10 @@ def main():
             #print(torch.unique(output[0].detach()))
             cv2.imwrite('demo.png',cv2.pyrUp(cv2.pyrUp(output.detach().cpu().numpy()[0].transpose(1,2,0)*255)))
             cv2.imwrite('demo_orig.png',cv2.pyrUp(cv2.pyrUp(data.detach().cpu().numpy()[0].transpose(1,2,0)*255)))
-            output_=model(output)
+            output_=(model(reverse_grad(output)))
             #print(data.size())
             loss_sep=(loss_weight.mean())
-            loss_class = (0-F.nll_loss(output_, target))*1e+2
+            loss_class = (F.nll_loss(output_, target))*1e+2
             loss=loss_class+loss_sep
             loss.backward()
 
