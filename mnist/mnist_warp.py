@@ -44,7 +44,7 @@ def main():
     use_cuda = True
     gamma=0.7
     save_model=True
-    batch_size=128 #128
+    batch_size=256 #128
     lr=0.01
     test_batch_size=256
 
@@ -93,7 +93,7 @@ def main():
         for (data, target) in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
-            output,loss_weight = model2(data)
+            output,loss_weight = model2(reverse_grad(data))
             #print(output[0][0])
             #print(torch.unique(output[0].detach()))
             cv2.imwrite('demo.png',cv2.pyrUp(cv2.pyrUp(output.detach().cpu().numpy()[0].transpose(1,2,0)*255)))
@@ -101,9 +101,10 @@ def main():
             output_=(model(reverse_grad(output)))
             #print(data.size())
             loss_sep=(loss_weight.mean())
-            loss_class = (F.nll_loss(output_, target))*1e+2
+            loss_class = (nn.CrossEntropyLoss()(output_, target))*1e+2
             loss=loss_class+loss_sep
             loss.backward()
+            #print("Loss Train",float(loss_class))
 
             loss_sum+=np.abs(float(loss)/(len(train_loader.dataset)//data.shape[0]))
             #print("Loss_Sep {} Loss_Classification {}".format((float(loss_sep)),np.abs(float(loss_class))))
@@ -121,7 +122,7 @@ def main():
                 data, target = data.to(device), target.to(device)
                 output,loss_weight = model2(data)
                 output=model(output)
-                test_loss += np.abs((-F.nll_loss(output, target, reduction='sum').cpu().item())+(loss_weight.mean().cpu()))  # sum up batch loss
+                test_loss += np.abs((nn.CrossEntropyLoss()(output, target, reduction='sum').cpu().item())+(loss_weight.mean().cpu()))  # sum up batch loss
                 pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
