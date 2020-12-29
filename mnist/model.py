@@ -316,7 +316,8 @@ class encode_mnist(nn.Module):
         
         dec1=self.decoder_1(x_en,x)
         thresh=torch.min(dec1)+torch.max(dec1)/4.0
-        dec1[dec1>thresh],dec1[dec1<=thresh]=1,0
+        dec1[dec1>thresh]=1*dec1[dec1>thresh]
+        dec1[dec1<=thresh]=0*dec1[dec1<=thresh]
         #print(torch.unique(dec1[0][0].detach()))
 
         dec2=self.decoder_2(x_en['encode_bg'],dec1)

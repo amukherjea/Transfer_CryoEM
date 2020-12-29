@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR,ReduceLROnPlateau
 from model import classifier
 import numpy as np
 import cv2
@@ -15,7 +15,6 @@ class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
 
-        self.classifier=classifier()
         self.encoder=encode_mnist()
     def forward(self,x):
         out,loss_bar,dec2=self.encoder(x)
@@ -38,7 +37,7 @@ def create_dataset(device,data,target,model2):
             output__=torch.cat([data,output],dim=0)
             target_=torch.cat([target,target],dim=0)
             #print(target.shape,target_.shape)
-            return data,target#output__,target_#data.to(device),target.to(device)#
+            return output,target#output__,target_#data.to(device),target.to(device)#
     
 
     
@@ -78,11 +77,12 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = classifier().cuda()#.to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.01,nesterov=True, momentum=0.9)
+    model.load_state_dict(torch.load('classifier_basic.pt'))
+    optimizer = optim.Adam(model.parameters(), lr=0.001,betas=(0.9,0.999))
 
     model2=Net().cuda().eval()
     model2.load_state_dict(torch.load('classifier_advanced.pt'))
-    
+    scheduler = ReduceLROnPlateau(optimizer,'min',factor=0.9,patience=2)
     #scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
@@ -90,7 +90,7 @@ def main():
         model2.eval()
         log_interval=10
         loss_sum=0.0
-        from tqdm.auto import tqdm
+        from tqdm import tqdm
         for (data, target) in tqdm(train_loader):
             data, target =create_dataset(device,data,target,model2)
             optimizer.zero_grad()
@@ -118,11 +118,12 @@ def main():
         test_loss /= len(test_loader.dataset)
 
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            test_loss, correct, len(test_loader.dataset),
-            100. * correct / len(test_loader.dataset)))
+            test_loss, correct, 2*len(test_loader.dataset),
+            100. * correct / (2.0*len(test_loader.dataset))))
+        
         torch.save(model.state_dict(), 'classifier_complete.pt')
     
-        #scheduler.step()
+        scheduler.step(test_loss)
 
 
 

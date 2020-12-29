@@ -1,12 +1,12 @@
 from __future__ import print_function
 import os
-try:
+if not os.path.isdir('mnist_m'):
     os.system('mkdir mnist_m/')
     os.system('rm -r mnist_m/')
     print("Downloading and setting up MNIST_M dataset")
     os.system('gdown --id 0B_tExHiYS-0veklUZHFYT19KYjg')
     os.system('tar -xf mnist_m.tar.gz')
-except:
+else:
     pass
 
 import argparse
@@ -18,27 +18,31 @@ from torch.utils.data import ConcatDataset
 from torchvision import transforms
 from torch.optim.lr_scheduler import StepLR
 from dataset import Mnist_m
-from tqdm.auto import tqdm
+from tqdm import tqdm
 from model import classifier
 
 def test(model, device, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
+    counter=0
     with torch.no_grad():
         for data, target in tqdm(test_loader):
             data, target = data.to(device), target.to(device)
             
             output = model(data)
-            test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            correct += pred.eq(target.view_as(pred)).sum().item()
+            test_loss += float(nn.CrossEntropyLoss()(output, target))  # sum up batch loss
+            pred = (torch.nn.Softmax()(output)).argmax(dim=1, keepdim=True).squeeze()  # get the index of the max log-probability
+            correct += float(torch.sum(pred==target))/len(target)
+            counter+=1.0
+            
+            
 
     test_loss /= len(test_loader.dataset)
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+        test_loss, correct, counter,
+        100. * correct / counter))
 
 
 def main():

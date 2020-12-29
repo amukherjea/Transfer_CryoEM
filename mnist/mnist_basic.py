@@ -57,19 +57,21 @@ def main():
         model.train()
         log_interval=10
         loss_sum=0.0
-        from tqdm.auto import tqdm
+        from tqdm import tqdm
         for (data, target) in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
             mask=(torch.min(data)+torch.max(data))/3.0
             data[data>=mask]=1
             data[data<mask]=0
             data=data.repeat(1,3,1,1)
+            
             data[:,0,:,:]=data[:,0,:,:]*np.random.random(1)[0]
             data[:,1,:,:]=data[:,1,:,:]*np.random.random(1)[0]
             data[:,2,:,:]=data[:,2,:,:]*np.random.random(1)[0]
             data[:,0,:,:][data[:,0,:,:]==0]=np.random.random(1)[0]
             data[:,1,:,:][data[:,1,:,:]==0]=np.random.random(1)[0]
             data[:,2,:,:][data[:,2,:,:]==0]=np.random.random(1)[0]
+            
             cv2.imwrite('demo_orig.png',cv2.pyrUp(cv2.pyrUp(data.detach().cpu().numpy()[0].transpose(1,2,0)*255)))
          
             optimizer.zero_grad()
@@ -92,6 +94,7 @@ def main():
                 data[data>=mask]=1
                 data[data<mask]=0
                 data=data.repeat(1,3,1,1)
+                
                 data[:,0,:,:]=data[:,0,:,:]*np.random.random(1)[0]
                 data[:,1,:,:]=data[:,1,:,:]*np.random.random(1)[0]
                 data[:,2,:,:]=data[:,2,:,:]*np.random.random(1)[0]

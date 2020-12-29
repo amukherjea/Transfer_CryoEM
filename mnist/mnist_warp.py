@@ -14,8 +14,6 @@ from model import classifier
 class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
-
-        self.classifier=classifier()
         self.encoder=encode_mnist()
     def forward(self,x):
         out,loss_bar,dec2=self.encoder(x)
@@ -44,11 +42,11 @@ def main():
     use_cuda = True
     gamma=0.7
     save_model=True
-    batch_size=256 #128
+    batch_size=128 #128
     lr=0.01
     test_batch_size=256
 
-    epochs=50
+    epochs=500
     device = torch.device("cuda" if use_cuda else "cpu")
 
     train_kwargs = {'batch_size': batch_size}
@@ -72,39 +70,36 @@ def main():
     train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
-    model = classifier().cuda()#.to(device)
-    optimizer = optim.Adadelta(model.parameters(), lr=lr)
-
-    scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
-    
+    model = classifier().cuda()#.to(device)   
     model2=Net().cuda()
     model.load_state_dict(torch.load('classifier_basic.pt'))
-    optimizer = optim.Adam(model2.parameters(), lr=0.01,betas=(0.9,0.999))
+    optimizer = optim.Adam(model2.parameters(), lr=0.001,betas=(0.9,0.999))
+    #optimizer = optim.SGD(model2.parameters(),lr=0.001,momentum=0.9,nesterov=True)
     #scheduler = StepLR(optimizer, step_size=1,gamma=gamma)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.9, patience=3)
-    
     for epoch in range(1, epochs + 1):
         print("Epoch {}".format(epoch))
-        model.eval()
         model2.train()
         log_interval=10
         loss_sum=0.0
-        from tqdm.auto import tqdm
+        from tqdm import tqdm
         for (data, target) in tqdm(train_loader):
             data, target = data.to(device), target.to(device)
+            
             optimizer.zero_grad()
-            output,loss_weight = model2(reverse_grad(data))
+            output,loss_weight = (model2((data)))
             #print(output[0][0])
             #print(torch.unique(output[0].detach()))
             cv2.imwrite('demo.png',cv2.pyrUp(cv2.pyrUp(output.detach().cpu().numpy()[0].transpose(1,2,0)*255)))
             cv2.imwrite('demo_orig.png',cv2.pyrUp(cv2.pyrUp(data.detach().cpu().numpy()[0].transpose(1,2,0)*255)))
-            output_=(model(reverse_grad(output)))
+            output_=(model(output))
             #print(data.size())
             loss_sep=(loss_weight.mean())
-            loss_class = (nn.CrossEntropyLoss()(output_, target))*1e+2
-            loss=loss_class+loss_sep
-            loss.backward()
-            #print("Loss Train",float(loss_class))
+            loss_class = -(nn.CrossEntropyLoss()(output_, target))*1e+2
+            loss=loss_class#+loss_sep
+            loss_class.backward()
+            
+            #print("Loss Train",float(np.abs(float(loss))))
 
             loss_sum+=np.abs(float(loss)/(len(train_loader.dataset)//data.shape[0]))
             #print("Loss_Sep {} Loss_Classification {}".format((float(loss_sep)),np.abs(float(loss_class))))
@@ -122,7 +117,7 @@ def main():
                 data, target = data.to(device), target.to(device)
                 output,loss_weight = model2(data)
                 output=model(output)
-                test_loss += np.abs((nn.CrossEntropyLoss()(output, target, reduction='sum').cpu().item())+(loss_weight.mean().cpu()))  # sum up batch loss
+                test_loss += np.abs((nn.CrossEntropyLoss()(output, target).cpu().item())+(loss_weight.mean().cpu()))  # sum up batch loss
                 pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
