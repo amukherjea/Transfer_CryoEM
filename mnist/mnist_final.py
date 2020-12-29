@@ -28,6 +28,12 @@ def create_dataset(device,data,target,model2):
             data[data>=mask]=1
             data[data<mask]=0
             data=data.repeat(1,3,1,1)
+            data[:,0,:,:]=data[:,0,:,:]*np.random.random(1)[0]
+            data[:,1,:,:]=data[:,1,:,:]*np.random.random(1)[0]
+            data[:,2,:,:]=data[:,2,:,:]*np.random.random(1)[0]
+            data[:,0,:,:][data[:,0,:,:]==0]=np.random.random(1)[0]
+            data[:,1,:,:][data[:,1,:,:]==0]=np.random.random(1)[0]
+            data[:,2,:,:][data[:,2,:,:]==0]=np.random.random(1)[0]
 
             #print(output[0][0])
             #print(torch.unique(output[0].detach()))
@@ -37,13 +43,13 @@ def create_dataset(device,data,target,model2):
             output__=torch.cat([data,output],dim=0)
             target_=torch.cat([target,target],dim=0)
             #print(target.shape,target_.shape)
-            return output,target#output__,target_#data.to(device),target.to(device)#
+            return output__,target_#output__,target_#data.to(device),target.to(device)#
     
 
-    
+import os    
 def main():
     # Training settings
-
+    #os.system('python3 test_m.py')
     use_cuda = True
     gamma=0.7
     save_model=True
@@ -77,7 +83,7 @@ def main():
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = classifier().cuda()#.to(device)
-    model.load_state_dict(torch.load('classifier_basic.pt'))
+#    model.load_state_dict(torch.load('classifier_basic.pt'))
     optimizer = optim.Adam(model.parameters(), lr=0.001,betas=(0.9,0.999))
 
     model2=Net().cuda().eval()
@@ -122,7 +128,7 @@ def main():
             100. * correct / (2.0*len(test_loader.dataset))))
         
         torch.save(model.state_dict(), 'classifier_complete.pt')
-    
+        os.system('python3 test_m.py')
         scheduler.step(test_loss)
 
 
