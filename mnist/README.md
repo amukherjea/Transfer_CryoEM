@@ -24,6 +24,6 @@
   - ***Output***: classifier_compelte.pt
 - **test_m.py**: Tests the model weights of the classifier stored in `classifier_complete.pt` against MNIST-M data.
 
-## How to run the files
+### How to run the files
 First run **mnist_basic.py**, followed by **mnist_warp.py** and then **mnist_final.py**. This will make the model learn from the source domain and give classification results for the source domain. Then running on **test_m.py** gives the classification results in the target dataset [MNIST-M]. 
   
